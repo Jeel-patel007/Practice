@@ -70,3 +70,30 @@ const createJobAndAssociate = async (title, description, imagePath, propertyId, 
 
 module.exports = { addProperty };
 
+
+const rules = {
+  propertyName: { required },
+  propertyLocation: { required },
+  propertyImage: { required },
+  jobs: {
+    $each: helpers.forEach({
+      name: {
+        required,
+      },
+      image: {
+        required,
+      }
+    }),
+  },
+};
+
+
+<v-file-input
+  v-model="job.image"
+  accept="image/*"
+  label="Job Image"
+  prepend-icon="mdi-camera"
+  width="300"
+  :error-messages="v$.jobs.$errors.map((e) => e.$message[index].image)"
+></v-file-input>
+
