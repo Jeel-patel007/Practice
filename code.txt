@@ -1,0 +1,437 @@
+// estimation status component
+
+<template>
+  <div class="estimation-container">
+    <v-card class="mx-auto my-5 pa-5" max-width="800">
+      <!-- Status Navigation Pipeline -->
+      <v-stepper v-model="activeStep" class="my-3">
+        <v-stepper-header>
+          <v-stepper-step :complete="status > 0" step="1">Estimation Pending</v-stepper-step>
+          <v-divider></v-divider>
+          <v-stepper-step :complete="status > 1" step="2">Accepted</v-stepper-step>
+          <v-divider></v-divider>
+          <v-stepper-step :complete="status > 2" step="3">Work Submitted</v-stepper-step>
+          <v-divider></v-divider>
+          <v-stepper-step :complete="status > 3" step="4">Payment Done</v-stepper-step>
+        </v-stepper-header>
+      </v-stepper>
+
+      <v-card-title class="justify-space-between">
+        <span>{{ estimation[0].property_has_estimation.property.name }}</span>
+        <v-btn @click="chat = true" :disabled="chat">Chat</v-btn>
+      </v-card-title>
+      <v-divider></v-divider>
+
+      <v-card-text>
+        <div v-if="status === 0">
+          <v-alert type="info" class="mt-3">Your Estimation is pending</v-alert>
+        </div>
+        <div v-if="status === 1">
+          <v-alert type="warning" class="mt-3">Your Work is pending please upload proof of work</v-alert>
+          <add-proof-of-work :estimation="estimation" />
+        </div>
+        <div v-if="status === 2">
+          <v-alert type="success" class="mt-3">Work added.</v-alert>
+          <v-btn @click="moreWork = true" class="mt-3">Want to add more work?</v-btn>
+          <div v-if="moreWork">
+            <add-proof-of-work :estimation="estimation" />
+          </div>
+        </div>
+        <div v-if="status === 3">
+          <v-alert type="success" class="mt-3">Payment is Done.</v-alert>
+        </div>
+
+        <div v-if="status === 2 || status === 1">
+          <v-data-table :headers="headers" :items="comments" class="mt-5">
+            <template v-slot:item.comment="{ item }">
+              <v-chip>{{ item.comment }}</v-chip>
+            </template>
+          </v-data-table>
+        </div>
+      </v-card-text>
+
+      <v-card-actions>
+        <v-btn @click="chat = true" v-if="!chat" class="ml-auto" color="primary">Chat</v-btn>
+      </v-card-actions>
+    </v-card>
+
+    <div v-if="chat">
+      <chat-comp :receiverId="estimation[0].property_has_estimation.property.users[0].id" />
+    </div>
+  </div>
+</template>
+
+// css
+
+.estimation-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 20px;
+}
+// property Submitted
+
+<template>
+  <div class="estimation-container">
+    <v-card class="mx-auto my-5 pa-5" max-width="800">
+      <!-- Status Navigation Pipeline -->
+      <v-stepper v-model="activeStep" class="my-3">
+        <v-stepper-header>
+          <v-stepper-step :complete="status > 0" step="1">Estimation Pending</v-stepper-step>
+          <v-divider></v-divider>
+          <v-stepper-step :complete="status > 1" step="2">Accepted</v-stepper-step>
+          <v-divider></v-divider>
+          <v-stepper-step :complete="status > 2" step="3">Work Submitted</v-stepper-step>
+          <v-divider></v-divider>
+          <v-stepper-step :complete="status > 3" step="4">Payment Done</v-stepper-step>
+        </v-stepper-header>
+      </v-stepper>
+
+      <v-card-title class="justify-space-between">
+        <span>Property Estimations</span>
+      </v-card-title>
+      <v-divider></v-divider>
+
+      <v-card-text>
+        <div v-if="propertyEstimation.length == 0">
+          <v-alert type="info" class="mt-3">No estimation submitted yet</v-alert>
+        </div>
+
+        <div v-if="status == 0">
+          <div v-for="estimation in propertyEstimation" :key="estimation.id">
+            <estimation-card :estimation="estimation" />
+          </div>
+        </div>
+
+        <div v-if="status == 1">
+          <proof-of-work :id="propertyId" />
+        </div>
+
+        <div v-if="status == 2">
+          <v-alert type="success" class="mt-3">Payment is Done!</v-alert>
+        </div>
+      </v-card-text>
+    </v-card>
+  </div>
+</template>
+// css
+
+.estimation-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 20px;
+}
+
+.v-card {
+  width: 100%;
+}
+
+.v-stepper {
+  margin-bottom: 20px;
+}
+/// login page
+
+<template>
+  <div class="form-container">
+    <v-card class="mx-auto my-12 pa-6" max-width="400">
+      <v-card-title class="justify-center">Login</v-card-title>
+      <v-card-text>
+        <v-form>
+          <v-alert v-if="invalidCred" type="error" dismissible>
+            Invalid Credentials
+          </v-alert>
+
+          <v-text-field
+            class="mb-4"
+            v-model="userEmail"
+            label="Email"
+            placeholder="john@mail.com"
+            :error-messages="v$.userEmail.$errors.map(e => e.$message)"
+            @blur="v$.userEmail.$touch"
+            @input="v$.userEmail.$touch"
+            variant="tonal"
+          ></v-text-field>
+
+          <v-text-field
+            class="mb-4"
+            v-model="password"
+            label="Password"
+            placeholder="Password"
+            type="password"
+            :error-messages="v$.password.$errors.map(e => e.$message)"
+            @blur="v$.password.$touch"
+            @input="v$.password.$touch"
+            variant="tonal"
+          ></v-text-field>
+
+          <div class="d-flex justify-space-between align-center mb-4">
+            <router-link to="/register">Create Account?</router-link>
+            <v-btn @click="handleForm" color="primary">Submit</v-btn>
+          </div>
+        </v-form>
+      </v-card-text>
+    </v-card>
+  </div>
+</template>
+
+<script setup>
+import { computed, ref } from 'vue';
+import { useVuelidate } from '@vuelidate/core';
+import { email, minLength, required } from '@vuelidate/validators';
+import { useStore } from 'vuex';
+import { useRouter } from 'vue-router';
+
+const router = useRouter();
+const store = useStore();
+
+const userEmail = ref('');
+const password = ref('');
+let invalidCred = ref(false);
+
+const rules = {
+  userEmail: { required, email },
+  password: { required, minLength: minLength(8) },
+}
+const roleId = computed(() => {
+    return store.getters.getRoleId;
+});
+const v$ = useVuelidate(rules, { userEmail, password });
+
+const handleForm = async () => {
+  let result = await v$.value.$validate();
+  if (result) {
+    result = await store.dispatch('login', { email: userEmail.value, password: password.value });
+    console.log(roleId.value);
+    if (result){
+      const redirectRoute = roleId.value ? 'Contractor' : 'Property';
+      router.push({name: redirectRoute});
+    }
+    else {
+      invalidCred.value = true;
+    }
+  }
+}
+</script>
+
+<style>
+.form-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  background: linear-gradient(135deg, #ece9e6, #ffffff);
+}
+
+.v-card {
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  border-radius: 8px;
+}
+
+.v-card-title {
+  font-size: 24px;
+  font-weight: bold;
+}
+
+.v-card-text {
+  padding: 16px;
+}
+
+.v-alert {
+  margin-bottom: 16px;
+}
+
+.v-text-field {
+  width: 100%;
+}
+
+.v-btn {
+  width: 100px;
+}
+</style>
+
+
+// registration
+
+<template>
+  <div class="form-container">
+    <v-card class="mx-auto my-12 pa-6" max-width="400">
+      <v-card-title class="justify-center">Register</v-card-title>
+      <v-card-text>
+        <v-form>
+          <v-select
+            v-model="roleId"
+            label="Select Role"
+            :items="roleOptions"
+            :error-messages="v$.roleId.$errors.map(e => e.$message)"
+            @blur="v$.roleId.$touch"
+            @input="v$.roleId.$touch"
+            item-text="title"
+            item-value="value"
+          ></v-select>
+
+          <v-text-field
+            v-model="firstName"
+            label="First Name"
+            placeholder="First Name"
+            :error-messages="v$.firstName.$errors.map(e => e.$message)"
+            @blur="v$.firstName.$touch"
+            @input="v$.firstName.$touch"
+            variant="tonal"
+          ></v-text-field>
+
+          <v-text-field
+            v-model="lastName"
+            label="Last Name"
+            placeholder="Last Name"
+            :error-messages="v$.lastName.$errors.map(e => e.$message)"
+            @blur="v$.lastName.$touch"
+            @input="v$.lastName.$touch"
+            variant="tonal"
+          ></v-text-field>
+
+          <v-text-field
+            v-model="userEmail"
+            label="Email"
+            placeholder="john@mail.com"
+            :error-messages="v$.userEmail.$errors.map(e => e.$message)"
+            @blur="v$.userEmail.$touch"
+            @input="v$.userEmail.$touch"
+            variant="tonal"
+          ></v-text-field>
+
+          <v-text-field
+            v-model="password"
+            label="Password"
+            placeholder="Password"
+            type="password"
+            :error-messages="v$.password.$errors.map(e => e.$message)"
+            @blur="v$.password.$touch"
+            @input="v$.password.$touch"
+            variant="tonal"
+          ></v-text-field>
+
+          <v-text-field
+            v-model="confirmPassword"
+            label="Confirm Password"
+            placeholder="Confirm Password"
+            type="password"
+            :error-messages="v$.confirmPassword.$errors.map(e => e.$message)"
+            @blur="v$.confirmPassword.$touch"
+            @input="v$.confirmPassword.$touch"
+            variant="tonal"
+          ></v-text-field>
+
+          <div class="d-flex justify-center">
+            <router-link to="/">Already have an account?</router-link>
+            <v-btn class="ml-4" @click="handleForm" color="primary">Submit</v-btn>
+          </div>
+        </v-form>
+      </v-card-text>
+    </v-card>
+  </div>
+</template>
+
+<script setup>
+import { computed, ref } from 'vue';
+import { useVuelidate } from '@vuelidate/core';
+import { email, minLength, required, alpha, sameAs } from '@vuelidate/validators';
+import { useStore } from 'vuex';
+import { useRouter } from 'vue-router';
+
+const router = useRouter();
+const store = useStore();
+
+const firstName = ref('');
+const lastName = ref('');
+const userEmail = ref('');
+const password = ref('');
+const confirmPassword = ref('');
+const roleId = ref('');
+const roleOptions = ref([
+  { title: 'Contractor', value: 1 },
+  { title: 'Property Owner', value: 0 }
+]);
+
+const rules = {
+  firstName: { required, alpha },
+  lastName: { required, alpha },
+  userEmail: { required, email },
+  password: { required, minLength: minLength(8) },
+  confirmPassword: {
+    required,
+    sameAs: sameAs(
+      computed(() => password.value)
+    )
+  },
+  roleId: { required }
+};
+
+const v$ = useVuelidate(rules, {
+  userEmail,
+  password,
+  firstName,
+  lastName,
+  confirmPassword,
+  roleId
+});
+
+const handleForm = async () => {
+  let result = await v$.value.$validate();
+  if (result) {
+    result = await store.dispatch('register', {
+      firstName: firstName.value,
+      lastName: lastName.value,
+      email: userEmail.value,
+      password: password.value,
+      roleId: roleId.value
+    });
+
+    if (result) {
+      alert('Registered Successfully!');
+      router.push({ name: 'Login' });
+    } else {
+      alert('Something Went Wrong');
+    }
+  }
+};
+</script>
+
+<style scoped>
+.form-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  background: linear-gradient(135deg, #ece9e6, #ffffff);
+}
+
+.v-card {
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  border-radius: 8px;
+}
+
+.v-card-title {
+  font-size: 24px;
+  font-weight: bold;
+  text-align: center;
+}
+
+.v-card-text {
+  padding: 16px;
+}
+
+.v-btn {
+  width: 120px;
+}
+
+.d-flex {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.ml-4 {
+  margin-left: 1rem;
+}
+</style>
