@@ -435,3 +435,289 @@ const handleForm = async () => {
   margin-left: 1rem;
 }
 </style>
+// app comp
+<script setup>
+import { pusher } from './common/pusher';
+import { useRoute, useRouter } from 'vue-router';
+import { useStore } from 'vuex';
+import NavbarComp from './components/NavbarComp.vue';
+import { onBeforeMount, ref } from 'vue';
+
+const route = useRoute();
+const router = useRouter();
+const store = useStore();
+const token = localStorage.getItem('authToken');
+const loading = ref(false);
+
+onBeforeMount(async () => {
+  if (!token) {
+    router.push({ name: 'Login' });
+  } else {
+    const result = await store.dispatch('getUserInfo', token);
+    if (result) {
+      loading.value = true;
+      const userId = store.getters.getUserId;
+      const channel = pusher.subscribe(`channel-${userId}`);
+      channel.bind("send-notification", function (data) {
+        store.commit('setChatNotification', data);
+      });
+    }
+  }
+});
+</script>
+
+<template>
+  <v-app>
+    <v-main>
+      <NavbarComp v-if="!route.meta.hideNav" />
+      <router-view v-if="loading" />
+    </v-main>
+  </v-app>
+</template>
+// property view 
+
+<template>
+  <v-container class="card-container">
+    <div v-if="userProperty.length === 0">
+      <v-alert type="info">No Property Pending</v-alert>
+    </div>
+    <v-row>
+      <v-col v-for="property in userProperty" :key="property.id" cols="12" md="6" lg="4">
+        <property-card :property="property" @click="handleProperty(property.id)" />
+      </v-col>
+    </v-row>
+  </v-container>
+</template>
+
+<script setup>
+import { computed, onMounted } from 'vue';
+import { useStore } from 'vuex';
+import { useRouter } from 'vue-router';
+import PropertyCard from '../components/property/PropertyCard.vue';
+
+const store = useStore();
+const router = useRouter();
+
+const userId = computed(() => store.getters.getUserId);
+
+onMounted(async () => {
+  if (userId.value) {
+    await store.dispatch('getUserProperty', userId.value);
+  }
+});
+
+const userProperty = computed(() => {
+  return store.getters.getUserProperty;
+});
+
+const handleProperty = async (id) => {
+  router.push({ path: `/propertyestimation/${id}` });
+};
+</script>
+
+<style scoped>
+.card-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+  justify-content: center;
+  padding: 20px;
+}
+
+.v-alert {
+  width: 100%;
+  text-align: center;
+}
+
+.v-card {
+  cursor: pointer;
+  transition: transform 0.3s;
+}
+
+.v-card:hover {
+  transform: scale(1.05);
+}
+
+.v-card__title {
+  font-weight: bold;
+}
+
+.v-card__text {
+  color: #666;
+}
+</style>
+// contractor view 
+
+<template>
+  <v-container>
+    <v-row justify="center">
+      <v-col cols="12" class="text-center">
+        <h2 class="mb-4">Properties</h2>
+      </v-col>
+      <v-col v-for="property in propertyData" :key="property.id" cols="12" md="6" lg="4">
+        <v-card class="property-card" @click="handleProperty(property)">
+          <v-img :src="property.image" height="200px" class="mb-3"></v-img>
+          <v-card-title>{{ property.title }}</v-card-title>
+          <v-card-subtitle>{{ property.location }}</v-card-subtitle>
+          <v-card-text>
+            <div>{{ property.description }}</div>
+            <div class="mt-2"><strong>Price:</strong> {{ property.price | currency }}</div>
+          </v-card-text>
+        </v-card>
+      </v-col>
+    </v-row>
+  </v-container>
+</template>
+
+<script setup>
+import { computed, onMounted } from 'vue';
+import { useStore } from 'vuex';
+import { useRouter } from 'vue-router';
+import { ref } from 'vue';
+import PropertyCard from '../components/property/PropertyCard.vue';
+
+const router = useRouter();
+const store = useStore();
+const userId = ref(null);
+
+onMounted(async () => {
+  await store.dispatch('getUserInfo', localStorage.getItem('authToken'));
+  userId.value = store.getters.getUserId;
+  if (userId.value) {
+    await store.dispatch('getAllProperty', userId.value);
+  }
+});
+
+const propertyData = computed(() => {
+  return store.getters.getProperty;
+});
+
+const handleProperty = (data) => {
+  router.push({ path: `/propertydetail/${data.id}` });
+};
+</script>
+
+<style scoped>
+.property-card {
+  cursor: pointer;
+  transition: transform 0.3s;
+}
+
+.property-card:hover {
+  transform: scale(1.05);
+}
+
+.v-card-title {
+  font-weight: bold;
+}
+
+.v-card-subtitle {
+  color: #888;
+}
+
+.v-card-text {
+  color: #666;
+}
+
+.v-container {
+  padding-top: 20px;
+}
+
+.v-img {
+  border-radius: 8px;
+  object-fit: cover;
+}
+</style>
+
+//
+
+<template>
+  <v-container class="property-details-container py-5">
+    <v-row>
+      <v-col cols="12" md="6" lg="4">
+        <v-card class="mx-auto" elevation="2" v-if="propertyData">
+          <v-img
+            class="white--text align-end"
+            height="200"
+            :src="propertyData.image"
+            cover
+          >
+            <v-card-title>{{ propertyData.name }}</v-card-title>
+          </v-img>
+
+          <v-card-subtitle class="pt-4">
+            {{ propertyData.address }}
+          </v-card-subtitle>
+
+          <v-card-text>
+            <div>{{ propertyData.description }}</div>
+            <h3>Jobs:</h3>
+            <div v-for="job in jobData" :key="job.id">
+              <h4>Job Title: {{ job.title }}</h4>
+              <h4>Job Description: {{ job.description }}</h4>
+              <v-img
+                class="mb-3"
+                height="150"
+                :src="job.image"
+                cover
+              ></v-img>
+            </div>
+          </v-card-text>
+          <submit-estimation-vue :propertyData="propertyData" />
+          <v-btn @click="chat = true" color="primary" :disabled="chat">Chat</v-btn>
+          <v-btn @click="chat = false" color="error" v-if="chat">Close Chat</v-btn>
+        </v-card>
+      </v-col>
+
+      <v-col cols="12" md="6" v-if="chat">
+        <chat-comp :receiverId="propertyData.users[0].id" />
+      </v-col>
+    </v-row>
+  </v-container>
+</template>
+
+<script setup>
+import { computed, ref, onMounted } from 'vue';
+import { useStore } from 'vuex';
+import { useRoute } from 'vue-router';
+import SubmitEstimationVue from '../contractor/SubmitEstimation.vue';
+import ChatComp from '../chat/ChatComp.vue';
+
+const store = useStore();
+const route = useRoute();
+const chat = ref(false);
+const jobData = ref([]);
+
+// Fetch job details on component mount
+onMounted(async () => {
+  const propertyId = route.params.id;
+  await store.dispatch("getAllProperty");
+
+  const response = await fetch(`http://localhost:3000/property/getpropertydetails/${propertyId}`);
+  const data = await response.json();
+  jobData.value = data.data;
+});
+
+const propertyData = computed(() => {
+  const propertyId = route.params.id;
+  return store.getters.getPropertyDetail(propertyId);
+});
+</script>
+
+<style scoped>
+.property-details-container {
+  display: flex;
+  justify-content: center;
+  gap: 20px;
+}
+
+.v-card {
+  width: 100%;
+  max-width: 400px;
+}
+
+.v-img {
+  border-radius: 8px;
+  object-fit: cover;
+}
+</style>
